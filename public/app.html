@@ -95,6 +95,8 @@
           <div class="form-section-title"><span>03</span><div><h3>Contact & links</h3><p>Give people a clear next step.</p></div></div>
           <div class="field-grid two">
             <label>Phone / WhatsApp<input name="phone" placeholder="+961 ..."></label>
+            <label>Public contact email<input name="contactEmail" type="email" placeholder="hello@yourname.com"></label>
+            <label class="switch-line">Show contact email publicly<input type="checkbox" name="showContactEmail" checked></label>
             <label>Personal website<input name="website" placeholder="https://"></label>
             <label>Instagram<input name="instagram" placeholder="https://instagram.com/..."></label>
             <label>LinkedIn<input name="linkedin" placeholder="https://linkedin.com/in/..."></label>
@@ -112,6 +114,7 @@
           <div class="field-grid two">
             <label>Accent color<input type="color" name="accent" value="#111111"></label>
             <label class="switch-line">Available for freelance work<input type="checkbox" name="availableForWork" checked></label>
+            <label class="switch-line">Portfolio is public<input type="checkbox" name="portfolioPublic" checked></label>
           </div>
           <div class="form-actions">
             <p id="profileMessage" class="form-message"></p>
@@ -138,21 +141,35 @@
           </div>
           <div class="source-import">
             <div class="source-import-head">
-              <div><b>Import work from a link</b><span>Paste one link per line. We detect the platform automatically.</span></div>
-              <div class="platform-pills"><i>Drive</i><i>Dropbox</i><i>YouTube</i><i>Vimeo</i><i>Behance</i><i>Dribbble</i><i>Figma</i><i>GitHub</i><i>Canva</i><i>Notion</i></div>
+              <div><b>Import work from a link</b><span>Paste one link per line or connect your Google Drive.</span></div>
+              <div class="source-actions">
+                <button type="button" id="connectDriveBtn" class="btn ghost small">Connect Google Drive</button>
+                <div class="platform-pills"><i>Drive</i><i>Dropbox</i><i>YouTube</i><i>Vimeo</i><i>Behance</i><i>Dribbble</i><i>Figma</i><i>GitHub</i><i>Canva</i><i>Notion</i></div>
+              </div>
             </div>
             <textarea name="sourceLinks" rows="4" placeholder="https://drive.google.com/file/d/...&#10;https://youtu.be/...&#10;https://www.behance.net/gallery/..."></textarea>
-            <small>Google Drive files must be shared as “Anyone with the link”. YouTube, Vimeo and public Drive files can appear directly inside the portfolio.</small>
+            <small id="driveHelp">Google Drive Picker lets you choose files from your account. Drive files still need link visibility that allows portfolio visitors to preview them.</small>
           </div>
 
           <label class="upload-zone">Upload from phone or computer
-            <input type="file" name="media" accept="image/*,video/*,.mov,.mp4,.webm" multiple>
-            <span>Select from Photos / Files on mobile, or drag files here on desktop · up to 8 files · max 250MB each</span>
+            <input id="projectMediaInput" type="file" name="media" accept="image/*,video/*,.mov,.mp4,.webm" multiple>
+            <span>Select from Photos / Files on mobile, or drag files here on desktop · up to 8 files</span>
+            <b id="fileSummary" class="file-summary">No files selected</b>
           </label>
-          <label class="switch-line">Feature this project<input type="checkbox" name="featured"></label>
+
+          <div id="projectUploadProgress" class="upload-progress hidden" aria-live="polite">
+            <div class="upload-progress-head"><span id="uploadProgressLabel">Uploading files…</span><strong id="uploadProgressPercent">0%</strong></div>
+            <div class="upload-progress-track"><i id="uploadProgressBar"></i></div>
+          </div>
+
+          <div class="field-grid two">
+            <label class="switch-line">Feature this project<input type="checkbox" name="featured"></label>
+            <label class="switch-line">Publish this project<input type="checkbox" name="published" checked></label>
+          </div>
           <div class="form-actions">
+            <button id="cancelEditBtn" class="btn ghost hidden" type="button">Cancel edit</button>
             <p id="projectMessage" class="form-message"></p>
-            <button class="btn dark" type="submit">Add project →</button>
+            <button id="projectSubmitBtn" class="btn dark" type="submit">Add project →</button>
           </div>
         </form>
 
