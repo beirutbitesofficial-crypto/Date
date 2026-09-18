@@ -157,8 +157,12 @@ function renderProjects() {
 function beginEditProject(id) {
   const project = state.projects.find(p => p.id === id);
   if (!project) return;
-  editingProjectId = id;
   const form = document.getElementById("projectForm");
+  form.reset();
+  importedDriveMedia = [];
+  document.getElementById("driveMediaInput").value = "[]";
+  updateFileSummary();
+  editingProjectId = id;
 
   projectVal("title", project.title);
   projectVal("category", project.category);
@@ -315,14 +319,14 @@ document.getElementById("projectForm").addEventListener("submit", async e => {
       msg.textContent = done ? "Processing securely…" : "Uploading " + Math.round(pct) + "%";
     });
 
+    const successMessage = editingProjectId ? "Project updated ✓" : "Project added ✓";
     if (editingProjectId) {
       state.projects = state.projects.map(p => p.id === editingProjectId ? data.project : p);
-      msg.textContent = "Project updated ✓";
     } else {
       state.projects.unshift(data.project);
-      msg.textContent = "Project added ✓";
     }
     resetProjectForm();
+    document.getElementById("projectMessage").textContent = successMessage;
     populate();
   } catch (error) {
     msg.textContent = error.message;
