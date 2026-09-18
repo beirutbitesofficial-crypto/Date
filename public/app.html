@@ -102,6 +102,11 @@
             <label>Dribbble<input name="dribbble" placeholder="https://dribbble.com/..."></label>
             <label>GitHub<input name="github" placeholder="https://github.com/..."></label>
             <label>YouTube<input name="youtube" placeholder="https://youtube.com/..."></label>
+            <label>Vimeo<input name="vimeo" placeholder="https://vimeo.com/..."></label>
+            <label>Figma<input name="figma" placeholder="https://figma.com/@..."></label>
+            <label>Canva<input name="canva" placeholder="https://canva.com/..."></label>
+            <label>Notion<input name="notion" placeholder="https://....notion.site"></label>
+            <label>TikTok<input name="tiktok" placeholder="https://tiktok.com/@..."></label>
           </div>
 
           <div class="field-grid two">
@@ -131,9 +136,18 @@
             <label>Tools <small>comma separated</small><input name="tools" placeholder="Figma, Webflow, After Effects"></label>
             <label>External project link<input name="projectUrl" placeholder="https://"></label>
           </div>
-          <label class="upload-zone">Images or videos
-            <input type="file" name="media" accept="image/*,video/*" multiple>
-            <span>Drop up to 8 files · max 60MB each</span>
+          <div class="source-import">
+            <div class="source-import-head">
+              <div><b>Import work from a link</b><span>Paste one link per line. We detect the platform automatically.</span></div>
+              <div class="platform-pills"><i>Drive</i><i>Dropbox</i><i>YouTube</i><i>Vimeo</i><i>Behance</i><i>Dribbble</i><i>Figma</i><i>GitHub</i><i>Canva</i><i>Notion</i></div>
+            </div>
+            <textarea name="sourceLinks" rows="4" placeholder="https://drive.google.com/file/d/...&#10;https://youtu.be/...&#10;https://www.behance.net/gallery/..."></textarea>
+            <small>Google Drive files must be shared as “Anyone with the link”. YouTube, Vimeo and public Drive files can appear directly inside the portfolio.</small>
+          </div>
+
+          <label class="upload-zone">Upload from phone or computer
+            <input type="file" name="media" accept="image/*,video/*,.mov,.mp4,.webm" multiple>
+            <span>Select from Photos / Files on mobile, or drag files here on desktop · up to 8 files · max 60MB each</span>
           </label>
           <label class="switch-line">Feature this project<input type="checkbox" name="featured"></label>
           <div class="form-actions">
