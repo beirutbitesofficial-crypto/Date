@@ -96,11 +96,14 @@ function externalSource(rawUrl) {
       kind = "drive";
     }
   } else if (platform === "Dropbox") {
-    kind = "file";
     try {
       const u = new URL(url);
+      const pathname = u.pathname.toLowerCase();
       u.searchParams.set("raw", "1");
       embedUrl = u.toString();
+      if (/\.(mp4|mov|m4v|webm)$/.test(pathname)) kind = "video-file";
+      else if (/\.(jpg|jpeg|png|gif|webp|avif)$/.test(pathname)) kind = "image-file";
+      else kind = "file";
     } catch {}
   }
 
@@ -108,7 +111,7 @@ function externalSource(rawUrl) {
 }
 function parseSourceLinks(value) {
   return clean(value, 8000)
-    .split(/\r?\n|,/)
+    .split(/\r?\n/)
     .map(v => externalSource(v.trim()))
     .filter(Boolean)
     .slice(0, 12);
@@ -181,7 +184,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 60 * 1024 * 1024, files: 8 },
+  limits: { fileSize: 250 * 1024 * 1024, files: 8 },
   fileFilter: (_req, file, cb) => {
     if (/^(image|video)\//.test(file.mimetype)) return cb(null, true);
     cb(new Error("Only image and video files are allowed."));
