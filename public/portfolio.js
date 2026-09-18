@@ -6,7 +6,23 @@ function safeUrl(url) {
   return /^https?:\/\//i.test(value) ? value : "";
 }
 function socialLabel(key) {
-  return ({ website:"Website", instagram:"Instagram", linkedin:"LinkedIn", behance:"Behance", dribbble:"Dribbble", github:"GitHub", youtube:"YouTube" })[key] || key;
+  return ({ website:"Website", instagram:"Instagram", linkedin:"LinkedIn", behance:"Behance", dribbble:"Dribbble", github:"GitHub", youtube:"YouTube", vimeo:"Vimeo", figma:"Figma", canva:"Canva", notion:"Notion", tiktok:"TikTok" })[key] || key;
+}
+function renderExternalSource(source) {
+  const url = safeUrl(source?.url);
+  const embed = safeUrl(source?.embedUrl);
+  const platform = esc(source?.platform || "External");
+
+  if (embed && ["video", "drive"].includes(source?.kind)) {
+    return `<iframe src="${embed}" title="${platform} project" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+  }
+  if (embed && source?.platform === "Dropbox") {
+    return `<video src="${embed}" controls playsinline preload="metadata"></video>`;
+  }
+  if (url) {
+    return `<a class="external-project-card" href="${url}" target="_blank" rel="noopener"><span>${platform}</span><b>Open project ↗</b></a>`;
+  }
+  return '<div class="portfolio-placeholder"></div>';
 }
 
 async function loadPortfolio() {
@@ -46,17 +62,24 @@ async function loadPortfolio() {
   } else {
     projectEl.innerHTML = projects.map((project, index) => {
       const first = project.media?.[0];
+      const sources = project.externalSources || [];
+      const mainSource = !first ? sources[0] : null;
       const mainMedia = first
         ? first.type === "video"
           ? `<video src="${first.url}" controls playsinline preload="metadata"></video>`
           : `<img src="${first.url}" alt="${esc(project.title)}" loading="lazy">`
-        : '<div class="portfolio-placeholder"></div>';
+        : mainSource
+          ? renderExternalSource(mainSource)
+          : '<div class="portfolio-placeholder"></div>';
 
-      const extra = (project.media || []).slice(1, 3).map(media =>
+      const extraUploads = (project.media || []).slice(1, 3).map(media =>
         media.type === "video"
           ? `<video src="${media.url}" controls playsinline preload="metadata"></video>`
           : `<img src="${media.url}" alt="" loading="lazy">`
-      ).join("");
+      );
+      const sourceStart = first ? 0 : (mainSource ? 1 : 0);
+      const extraSources = sources.slice(sourceStart, sourceStart + Math.max(0, 2 - extraUploads.length)).map(renderExternalSource);
+      const extra = [...extraUploads, ...extraSources].join("");
 
       const link = safeUrl(project.projectUrl);
       return `<article class="portfolio-project">
@@ -72,6 +95,7 @@ async function loadPortfolio() {
             <span>${esc([project.client, project.year].filter(Boolean).join(" · "))}</span>
             <span>${esc((project.tools || []).join(" · "))}</span>
             ${link ? `<a href="${link}" target="_blank" rel="noopener">View project ↗</a>` : ""}
+            ${sources.length ? `<span class="source-list">Source: ${sources.map(x => esc(x.platform)).join(" · ")}</span>` : ""}
           </div>
         </div>
       </article>`;
