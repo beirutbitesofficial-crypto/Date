@@ -33,3 +33,49 @@ loginForm.addEventListener("submit", e => {
   e.preventDefault();
   submitForm(loginForm, "/api/auth/login", document.getElementById("loginError"));
 });
+
+
+const forgotForm = document.getElementById("forgotForm");
+const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
+const backToLoginBtn = document.getElementById("backToLoginBtn");
+
+function showForgotForm() {
+  registerForm.classList.add("hidden");
+  loginForm.classList.add("hidden");
+  forgotForm.classList.remove("hidden");
+  tabs.forEach(t => t.classList.remove("active"));
+}
+function showLoginForm() {
+  forgotForm.classList.add("hidden");
+  registerForm.classList.add("hidden");
+  loginForm.classList.remove("hidden");
+  tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === "login"));
+}
+
+forgotPasswordBtn?.addEventListener("click", showForgotForm);
+backToLoginBtn?.addEventListener("click", showLoginForm);
+
+forgotForm?.addEventListener("submit", async e => {
+  e.preventDefault();
+  const msg = document.getElementById("forgotMessage");
+  msg.textContent = "Sending…";
+  const payload = Object.fromEntries(new FormData(forgotForm).entries());
+  try {
+    const response = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    msg.textContent = data.message || "If that email exists, a reset link has been sent.";
+  } catch {
+    msg.textContent = "Could not send the reset email. Please try again.";
+  }
+});
+
+const query = new URLSearchParams(location.search);
+if (query.get("verification") === "invalid") {
+  const error = document.getElementById("loginError");
+  error.textContent = "That verification link is invalid or expired. Sign in to request a new one.";
+  showLoginForm();
+}
