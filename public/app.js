@@ -85,13 +85,16 @@ function renderProjects() {
   }
   grid.innerHTML = state.projects.map(project => {
     const first = project.media?.[0];
+    const source = project.externalSources?.[0];
     const media = first
       ? first.type === "video"
         ? `<video src="${first.url}" muted preload="metadata"></video>`
         : `<img src="${first.url}" alt="">`
-      : '<div class="project-placeholder">No media</div>';
+      : source
+        ? `<div class="source-thumb"><b>${escapeHtml(source.platform || "External")}</b><small>Imported project source</small></div>`
+        : '<div class="project-placeholder">No media</div>';
     return `<article class="project-admin-card">
-      <div class="project-thumb">${media}<span>${project.category || "Project"}</span></div>
+      <div class="project-thumb">${media}<span>${escapeHtml(project.category || source?.platform || "Project")}</span></div>
       <div class="project-admin-body"><div><h3>${escapeHtml(project.title)}</h3><p>${escapeHtml(project.client || project.year || "")}</p></div>
       <button class="icon-btn delete-project" data-id="${project.id}" aria-label="Delete project">×</button></div>
     </article>`;
