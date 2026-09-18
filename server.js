@@ -32,7 +32,11 @@ function validateProductionEnv() {
   if (!process.env.SUPABASE_SECRET_KEY) missing.push("SUPABASE_SECRET_KEY");
   if (!process.env.SUPABASE_STORAGE_BUCKET) missing.push("SUPABASE_STORAGE_BUCKET");
   if (!APP_URL || !/^https:\/\//i.test(APP_URL)) missing.push("APP_URL (https://...)");
-  if (missing.length) throw new Error("Production configuration incomplete: " + missing.join(", "));
+  if (missing.length) {
+    const message = "Production configuration incomplete: " + missing.join(", ");
+    if (process.env.REQUIRE_PRODUCTION_SERVICES === "true") throw new Error(message);
+    console.warn("[production-warning] " + message);
+  }
 }
 validateProductionEnv();
 
