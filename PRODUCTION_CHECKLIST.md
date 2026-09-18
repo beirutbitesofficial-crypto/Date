@@ -14,6 +14,9 @@ FolioOne is coded to run locally without external infrastructure, but real produ
 8. Create a Web OAuth client, add the production domain under Authorized JavaScript origins, and set `GOOGLE_CLIENT_ID`.
 9. Create/restrict a Google API key for the Picker/Drive APIs and set `GOOGLE_API_KEY`.
 10. Set `GOOGLE_APP_ID` to the Google Cloud project number.
+11. Configure production SMTP credentials so email verification and password reset can send.
+12. Test registration → verification → login → forgot password → reset password → old-session invalidation.
+13. Test Google Drive Picker with a real Google account and confirm imported image/video files are copied into FolioOne cloud storage.
 
 ## Recommended before public launch
 
