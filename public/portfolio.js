@@ -51,6 +51,13 @@ async function loadPortfolio() {
   document.getElementById("pBio").textContent = p.bio || "";
   document.getElementById("pExperience").textContent = p.experienceYears || "—";
   document.getElementById("pLanguages").textContent = (p.languages || []).join(" · ") || "—";
+  if (p.showBirthday && p.birthday) {
+    const birthday = new Date(p.birthday + "T00:00:00");
+    document.getElementById("pBirthday").textContent = Number.isNaN(birthday.getTime())
+      ? p.birthday
+      : birthday.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+    document.getElementById("pBirthdayWrap").classList.remove("hidden");
+  }
   document.getElementById("pSkills").innerHTML = (p.skills || []).map(x => `<span>${esc(x)}</span>`).join("");
   document.getElementById("pServices").innerHTML = (p.services || []).map(x => `<span>${esc(x)}</span>`).join("");
   document.getElementById("pFooterName").textContent = "© " + new Date().getFullYear() + " " + (p.fullName || "");
