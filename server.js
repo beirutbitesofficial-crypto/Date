@@ -39,6 +39,9 @@ function validateProductionEnv() {
   if (!process.env.SMTP_USER) missing.push("SMTP_USER");
   if (!process.env.SMTP_PASS) missing.push("SMTP_PASS");
   if (!process.env.SMTP_FROM) missing.push("SMTP_FROM");
+  if (!process.env.GOOGLE_CLIENT_ID) missing.push("GOOGLE_CLIENT_ID");
+  if (!process.env.GOOGLE_API_KEY) missing.push("GOOGLE_API_KEY");
+  if (!process.env.GOOGLE_APP_ID) missing.push("GOOGLE_APP_ID");
   if (!APP_URL || !/^https:\/\//i.test(APP_URL)) missing.push("APP_URL (https://...)");
   if (missing.length) {
     const message = "Production configuration incomplete: " + missing.join(", ");
@@ -295,7 +298,9 @@ app.get("/readyz", async (_req, res, next) => {
     res.status(ok ? 200 : 503).json({
       ok,
       database: store.mode,
-      storage: storageHealth.mode
+      storage: storageHealth.mode,
+      email: mailer.configured ? "configured" : "not-configured",
+      googleDrive: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_API_KEY && process.env.GOOGLE_APP_ID)
     });
   } catch (error) {
     next(error);
