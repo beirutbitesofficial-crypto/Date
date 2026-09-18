@@ -40,3 +40,15 @@
 .external-project-card{min-height:420px;height:100%;display:flex;flex-direction:column;justify-content:space-between;padding:28px;background:#151514;color:#fff}.external-project-card span{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:#aaa}.external-project-card b{font-size:26px;letter-spacing:-.04em}
 .source-list{font-size:11px;color:#8b8983}
 @media(max-width:900px){.main-media iframe{height:70vw;max-height:620px}.extra-media iframe{min-height:180px}.external-project-card{min-height:300px}}
+
+
+/* Production UX */
+.btn.small{padding:8px 12px;font-size:11px}.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.source-actions{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.file-summary{display:block;font-size:11px;color:#5f5d57;margin-top:5px}
+.upload-progress{border:1px solid #dad7cf;border-radius:14px;background:#fff;padding:14px 15px}
+.upload-progress-head{display:flex;align-items:center;justify-content:space-between;gap:20px;font-size:12px;margin-bottom:10px}.upload-progress-head span{color:#68665f}.upload-progress-head strong{font-variant-numeric:tabular-nums}
+.upload-progress-track{height:8px;border-radius:999px;background:#ece9e2;overflow:hidden}.upload-progress-track i{display:block;height:100%;width:0;background:#111;border-radius:999px;transition:width .15s linear}
+.project-card-actions{display:flex;gap:6px}.publish-state{display:inline-block;margin-top:7px;font-size:10px;font-weight:750;color:#4f7459}.publish-state.draft{color:#9a6c40}
+.form-actions .btn.ghost{background:#fff}
+@media(max-width:560px){.source-actions{align-items:stretch;flex-direction:column}.source-actions .btn{width:100%}.form-actions{align-items:stretch;flex-direction:column}.form-actions .form-message{order:-1}}
