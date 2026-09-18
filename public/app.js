@@ -2,6 +2,7 @@ let state = { user: null, projects: [], config: null };
 let editingProjectId = null;
 let googleTokenClient = null;
 let googlePickerReady = false;
+let importedDriveMedia = [];
 
 const sections = {
   overview: document.getElementById("overviewSection"),
@@ -185,6 +186,8 @@ function resetProjectForm() {
   document.getElementById("projectSubmitBtn").textContent = "Add project →";
   document.getElementById("cancelEditBtn").classList.add("hidden");
   document.getElementById("projectMessage").textContent = "";
+  importedDriveMedia = [];
+  document.getElementById("driveMediaInput").value = "[]";
   document.getElementById("fileSummary").textContent = "No files selected";
   setUploadProgress(null);
 }
@@ -197,15 +200,16 @@ function formatBytes(bytes) {
   return (mb >= 10 ? Math.round(mb) : mb.toFixed(1)) + " MB";
 }
 
-document.getElementById("projectMediaInput").addEventListener("change", e => {
-  const files = [...e.target.files];
-  if (!files.length) {
-    document.getElementById("fileSummary").textContent = "No files selected";
-    return;
-  }
+function updateFileSummary() {
+  const files = [...document.getElementById("projectMediaInput").files];
   const total = files.reduce((sum, file) => sum + file.size, 0);
-  document.getElementById("fileSummary").textContent = `${files.length} file${files.length > 1 ? "s" : ""} · ${formatBytes(total)}`;
-});
+  const parts = [];
+  if (files.length) parts.push(`${files.length} device file${files.length > 1 ? "s" : ""} · ${formatBytes(total)}`);
+  if (importedDriveMedia.length) parts.push(`${importedDriveMedia.length} Drive import${importedDriveMedia.length > 1 ? "s" : ""}`);
+  document.getElementById("fileSummary").textContent = parts.join(" + ") || "No files selected";
+}
+
+document.getElementById("projectMediaInput").addEventListener("change", updateFileSummary);
 
 function validateProjectFiles(files) {
   const maxMb = Number(state.config?.maxUploadMb || 250);
@@ -296,6 +300,7 @@ document.getElementById("projectForm").addEventListener("submit", async e => {
   const fd = new FormData(form);
   fd.set("featured", form.featured.checked ? "true" : "false");
   fd.set("published", form.published.checked ? "true" : "false");
+  fd.set("driveMedia", JSON.stringify(importedDriveMedia));
 
   submit.disabled = true;
   msg.textContent = files.length ? "Preparing upload…" : "Saving project…";
@@ -411,21 +416,58 @@ function openGooglePicker(accessToken) {
     .setOAuthToken(accessToken)
     .addView(docsView)
     .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
-    .setCallback(data => {
+    .setCallback(async data => {
       const action = data[google.picker.Response.ACTION];
       if (action !== google.picker.Action.PICKED) return;
 
       const docs = data[google.picker.Response.DOCUMENTS] || [];
       const textarea = document.querySelector('#projectForm [name="sourceLinks"]');
-      const current = textarea.value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-      const selected = docs.map(doc => {
-        const url = doc[google.picker.Document.URL] || doc.url;
-        const id = doc[google.picker.Document.ID] || doc.id;
-        return url || (id ? "https://drive.google.com/open?id=" + encodeURIComponent(id) : "");
-      }).filter(Boolean);
+      const currentLinks = textarea.value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+      const fallbackLinks = [];
+      let imported = 0;
+      let failed = 0;
 
-      textarea.value = [...new Set([...current, ...selected])].join("\n");
-      document.getElementById("driveHelp").textContent = `${selected.length} Drive item${selected.length === 1 ? "" : "s"} added. Make sure visitors have permission to preview them.`;
+      for (let i = 0; i < docs.length; i++) {
+        const doc = docs[i];
+        const id = doc[google.picker.Document.ID] || doc.id;
+        const url = doc[google.picker.Document.URL] || doc.url || (id ? "https://drive.google.com/open?id=" + encodeURIComponent(id) : "");
+        const mimeType = doc[google.picker.Document.MIME_TYPE] || doc.mimeType || "";
+        const name = doc[google.picker.Document.NAME] || doc.name || "Drive file";
+
+        if (!id || !/^(image|video)\//.test(mimeType)) {
+          if (url) fallbackLinks.push(url);
+          continue;
+        }
+
+        document.getElementById("driveHelp").textContent = `Importing from Drive ${i + 1}/${docs.length}: ${name}`;
+
+        try {
+          const response = await fetch("/api/drive/import", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fileId: id, accessToken })
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Drive import failed.");
+          importedDriveMedia.push(result.media);
+          imported++;
+        } catch (error) {
+          failed++;
+          if (url) fallbackLinks.push(url);
+          console.error("Drive import failed", error);
+        }
+      }
+
+      importedDriveMedia = importedDriveMedia.slice(0, 8);
+      document.getElementById("driveMediaInput").value = JSON.stringify(importedDriveMedia);
+      textarea.value = [...new Set([...currentLinks, ...fallbackLinks])].join("\n");
+      updateFileSummary();
+
+      const summary = [];
+      if (imported) summary.push(`${imported} file${imported === 1 ? "" : "s"} imported to FolioOne`);
+      if (fallbackLinks.length) summary.push(`${fallbackLinks.length} added as Drive link${fallbackLinks.length === 1 ? "" : "s"}`);
+      if (failed) summary.push(`${failed} import${failed === 1 ? "" : "s"} fell back to links`);
+      document.getElementById("driveHelp").textContent = summary.join(" · ") || "No Drive files were added.";
     })
     .build();
 
