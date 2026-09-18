@@ -35,6 +35,84 @@ function writeDb(db) {
 function clean(value, max = 300) {
   return String(value || "").trim().slice(0, max);
 }
+function safeHttpUrl(value) {
+  const raw = clean(value, 1000);
+  try {
+    const u = new URL(raw);
+    return ["http:", "https:"].includes(u.protocol) ? u.toString() : "";
+  } catch {
+    return "";
+  }
+}
+function detectPlatform(url) {
+  const value = String(url || "").toLowerCase();
+  if (value.includes("drive.google.com")) return "Google Drive";
+  if (value.includes("dropbox.com")) return "Dropbox";
+  if (value.includes("youtube.com") || value.includes("youtu.be")) return "YouTube";
+  if (value.includes("vimeo.com")) return "Vimeo";
+  if (value.includes("behance.net")) return "Behance";
+  if (value.includes("dribbble.com")) return "Dribbble";
+  if (value.includes("github.com")) return "GitHub";
+  if (value.includes("figma.com")) return "Figma";
+  if (value.includes("canva.com")) return "Canva";
+  if (value.includes("notion.so") || value.includes("notion.site")) return "Notion";
+  if (value.includes("instagram.com")) return "Instagram";
+  if (value.includes("tiktok.com")) return "TikTok";
+  return "External";
+}
+function externalSource(rawUrl) {
+  const url = safeHttpUrl(rawUrl);
+  if (!url) return null;
+  const platform = detectPlatform(url);
+  let embedUrl = "";
+  let kind = "link";
+
+  if (platform === "YouTube") {
+    try {
+      const u = new URL(url);
+      let id = u.hostname.includes("youtu.be") ? u.pathname.split("/").filter(Boolean)[0] : u.searchParams.get("v");
+      if (!id) {
+        const parts = u.pathname.split("/").filter(Boolean);
+        if (["shorts", "embed"].includes(parts[0])) id = parts[1];
+      }
+      if (id && /^[A-Za-z0-9_-]{6,20}$/.test(id)) {
+        embedUrl = "https://www.youtube.com/embed/" + id;
+        kind = "video";
+      }
+    } catch {}
+  } else if (platform === "Vimeo") {
+    const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    if (match) {
+      embedUrl = "https://player.vimeo.com/video/" + match[1];
+      kind = "video";
+    }
+  } else if (platform === "Google Drive") {
+    let id = "";
+    const pathMatch = url.match(/\/file\/d\/([^/]+)/);
+    const idMatch = url.match(/[?&]id=([^&]+)/);
+    id = (pathMatch && pathMatch[1]) || (idMatch && idMatch[1]) || "";
+    if (id) {
+      embedUrl = "https://drive.google.com/file/d/" + id + "/preview";
+      kind = "drive";
+    }
+  } else if (platform === "Dropbox") {
+    kind = "file";
+    try {
+      const u = new URL(url);
+      u.searchParams.set("raw", "1");
+      embedUrl = u.toString();
+    } catch {}
+  }
+
+  return { url, platform, embedUrl, kind };
+}
+function parseSourceLinks(value) {
+  return clean(value, 8000)
+    .split(/\r?\n|,/)
+    .map(v => externalSource(v.trim()))
+    .filter(Boolean)
+    .slice(0, 12);
+}
 function slugify(value) {
   return clean(value, 80)
     .toLowerCase()
@@ -153,7 +231,8 @@ app.post("/api/auth/register", async (req, res) => {
       accent: "#111111",
       social: {
         website: "", instagram: "", linkedin: "", behance: "",
-        dribbble: "", github: "", youtube: ""
+        dribbble: "", github: "", youtube: "", vimeo: "",
+        figma: "", canva: "", notion: "", tiktok: ""
       }
     }
   };
@@ -213,7 +292,12 @@ app.put("/api/profile", auth, upload.single("avatar"), (req, res) => {
     behance: clean(req.body.behance, 250),
     dribbble: clean(req.body.dribbble, 250),
     github: clean(req.body.github, 250),
-    youtube: clean(req.body.youtube, 250)
+    youtube: clean(req.body.youtube, 250),
+    vimeo: clean(req.body.vimeo, 250),
+    figma: clean(req.body.figma, 250),
+    canva: clean(req.body.canva, 250),
+    notion: clean(req.body.notion, 250),
+    tiktok: clean(req.body.tiktok, 250)
   };
   if (req.file) profile.avatarUrl = "/uploads/" + req.file.filename;
 
@@ -247,6 +331,7 @@ app.post("/api/projects", auth, upload.array("media", 8), (req, res) => {
     description: clean(req.body.description, 1600),
     tools: clean(req.body.tools, 500).split(",").map(s => s.trim()).filter(Boolean).slice(0, 20),
     projectUrl: clean(req.body.projectUrl, 300),
+    externalSources: parseSourceLinks(req.body.sourceLinks),
     featured: String(req.body.featured) === "true",
     media: (req.files || []).map(file => ({
       url: "/uploads/" + file.filename,
