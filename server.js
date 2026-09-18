@@ -2,7 +2,7 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
-const { Readable } = require("stream");
+const { Readable, Transform } = require("stream");
 const { pipeline } = require("stream/promises");
 const bcrypt = require("bcryptjs");
 const cookieParser = require("cookie-parser");
@@ -470,9 +470,22 @@ app.post("/api/drive/import", auth, async (req, res, next) => {
     }
 
     const ext = path.extname(meta.name || "").toLowerCase().replace(/[^.a-z0-9]/g, "").slice(0, 10);
+    const contentLength = Number(download.headers.get("content-length") || 0);
+    if (contentLength && contentLength > MAX_UPLOAD_BYTES) {
+      return res.status(413).json({ error: `Drive file is larger than ${MAX_UPLOAD_MB}MB.` });
+    }
+
     const filename = "drive-" + Date.now() + "-" + crypto.randomBytes(7).toString("hex") + ext;
     tmpPath = path.join(UPLOAD_DIR, filename);
-    await pipeline(Readable.fromWeb(download.body), fs.createWriteStream(tmpPath));
+    let received = 0;
+    const byteLimit = new Transform({
+      transform(chunk, _encoding, callback) {
+        received += chunk.length;
+        if (received > MAX_UPLOAD_BYTES) return callback(new Error("Drive file exceeds upload limit."));
+        callback(null, chunk);
+      }
+    });
+    await pipeline(Readable.fromWeb(download.body), byteLimit, fs.createWriteStream(tmpPath));
 
     const saved = await mediaStore.persist({
       path: tmpPath,
