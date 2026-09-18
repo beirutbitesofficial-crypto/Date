@@ -52,3 +52,12 @@
 .project-card-actions{display:flex;gap:6px}.publish-state{display:inline-block;margin-top:7px;font-size:10px;font-weight:750;color:#4f7459}.publish-state.draft{color:#9a6c40}
 .form-actions .btn.ghost{background:#fff}
 @media(max-width:560px){.source-actions{align-items:stretch;flex-direction:column}.source-actions .btn{width:100%}.form-actions{align-items:stretch;flex-direction:column}.form-actions .form-message{order:-1}}
+
+
+/* Account security */
+.verification-banner{background:#8a5a19;color:#fff;border-radius:24px;padding:28px 30px;display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:24px}
+.verification-banner span{font-size:10px;letter-spacing:.15em;color:#ead5b8}.verification-banner h2{font-size:25px;letter-spacing:-.035em;margin:8px 0}.verification-banner p{color:#ead5b8;margin:0;font-size:13px}.verification-banner .btn.light{white-space:nowrap}
+.account-panel,.account-form{margin-bottom:18px}.account-row{display:flex;justify-content:space-between;align-items:center;gap:20px}.account-row h3{margin:0 0 6px}.account-row p{margin:0;color:#777;font-size:13px}
+.danger-panel{border-color:#e1c4c0}.danger-panel .form-section-title h3{color:#8f302b}.danger-confirm{border-color:#e1c4c0!important;background:#fff8f7!important}
+.btn.danger{background:#9f302a;color:#fff}.text-button{border:0;background:transparent;padding:3px 0;color:#666;text-decoration:underline;text-underline-offset:3px;font-size:12px}.single-auth{min-height:calc(100vh - 88px)}
+@media(max-width:700px){.verification-banner,.account-row{align-items:flex-start;flex-direction:column}.verification-banner .btn,.account-row .btn{width:100%}}
