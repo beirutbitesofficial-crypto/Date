@@ -106,6 +106,12 @@ async function loadPortfolio() {
   }
 
   const links = [];
+  if (p.showContactEmail !== false && p.contactEmail) {
+    const email = String(p.contactEmail).trim();
+    if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      links.push(`<a href="mailto:${esc(email)}">Email ↗</a>`);
+    }
+  }
   if (p.phone) {
     const cleanPhone = p.phone.replace(/[^0-9+]/g, "");
     links.push(`<a href="https://wa.me/${cleanPhone.replace("+","")}" target="_blank" rel="noopener">WhatsApp ↗</a>`);
