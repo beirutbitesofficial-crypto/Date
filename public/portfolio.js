@@ -16,8 +16,11 @@ function renderExternalSource(source) {
   if (embed && ["video", "drive"].includes(source?.kind)) {
     return `<iframe src="${embed}" title="${platform} project" loading="lazy" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
   }
-  if (embed && source?.platform === "Dropbox") {
+  if (embed && source?.kind === "video-file") {
     return `<video src="${embed}" controls playsinline preload="metadata"></video>`;
+  }
+  if (embed && source?.kind === "image-file") {
+    return `<img src="${embed}" alt="${platform} project" loading="lazy">`;
   }
   if (url) {
     return `<a class="external-project-card" href="${url}" target="_blank" rel="noopener"><span>${platform}</span><b>Open project ↗</b></a>`;
