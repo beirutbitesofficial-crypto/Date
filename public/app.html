@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FolioOne — Dashboard</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="dashboard-page">
+  <header class="dash-nav">
+    <a class="brand" href="/"><span>F</span> FolioOne</a>
+    <div class="dash-nav-right">
+      <a id="previewLink" class="btn ghost" target="_blank">Preview portfolio</a>
+      <button id="logoutBtn" class="btn dark">Sign out</button>
+    </div>
+  </header>
+
+  <main class="dash-shell">
+    <aside class="side">
+      <div class="side-profile">
+        <div id="sideAvatar" class="side-avatar">F</div>
+        <div><strong id="sideName">Your profile</strong><small id="sideRole">Freelancer</small></div>
+      </div>
+      <nav>
+        <button class="side-link active" data-section="overview">Overview</button>
+        <button class="side-link" data-section="profile">Profile & survey</button>
+        <button class="side-link" data-section="work">Portfolio work</button>
+        <button class="side-link" data-section="share">Share & publish</button>
+      </nav>
+      <div class="side-tip"><b>Tip</b><p>3–6 excellent projects usually look stronger than 20 average ones.</p></div>
+    </aside>
+
+    <section class="dash-content">
+      <div id="loading" class="loading">Loading your workspace…</div>
+
+      <section id="overviewSection" class="dash-section hidden">
+        <div class="dash-heading">
+          <div><div class="eyebrow">YOUR WORKSPACE</div><h1 id="helloTitle">Good to see you.</h1></div>
+          <button class="btn dark" data-go="work">+ Add project</button>
+        </div>
+
+        <div id="onboardingBanner" class="onboarding-banner hidden">
+          <div><span>GET STARTED</span><h2>Build your professional profile first.</h2><p>Complete the short survey so we can create the structure of your public portfolio.</p></div>
+          <button class="btn light" data-go="profile">Complete profile →</button>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><small>PROFILE</small><strong id="completionStat">0%</strong><span>completion</span></div>
+          <div class="stat"><small>PROJECTS</small><strong id="projectsStat">0</strong><span>published work</span></div>
+          <div class="stat"><small>PUBLIC LINK</small><strong id="linkStatus">Not ready</strong><span id="linkHint">finish profile</span></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><div><h3>Portfolio checklist</h3><p>Keep the essentials strong.</p></div></div>
+          <div class="checklist">
+            <div id="checkProfile">○ Professional profile completed</div>
+            <div id="checkBio">○ Clear bio and positioning</div>
+            <div id="checkSkills">○ Skills and services added</div>
+            <div id="checkWork">○ At least 3 projects uploaded</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="profileSection" class="dash-section hidden">
+        <div class="dash-heading">
+          <div><div class="eyebrow">PROFILE SURVEY</div><h1>Tell clients who you are.</h1><p>This information builds your public one-page portfolio.</p></div>
+        </div>
+        <form id="profileForm" class="panel form-panel" enctype="multipart/form-data">
+          <div class="form-section-title"><span>01</span><div><h3>Professional identity</h3><p>Your headline and core positioning.</p></div></div>
+          <div class="field-grid two">
+            <label>Full name<input name="fullName" required></label>
+            <label>Portfolio URL<div class="slug-input"><span>/u/</span><input name="slug" required></div></label>
+            <label>Position / title<input name="position" placeholder="e.g. Senior Video Editor" required></label>
+            <label>Primary discipline<select name="discipline" required>
+              <option value="">Choose one</option>
+              <option>Web Designer</option><option>Graphic Designer</option><option>Video Editor</option>
+              <option>UI/UX Designer</option><option>Developer</option><option>Photographer</option>
+              <option>Content Creator</option><option>Social Media Specialist</option><option>Other</option>
+            </select></label>
+            <label>Date of birth<input type="date" name="birthday"></label>
+            <label class="switch-line">Show birthday publicly<input type="checkbox" name="showBirthday"></label>
+            <label>Location<input name="location" placeholder="Beirut, Lebanon"></label>
+            <label>Years of experience<input name="experienceYears" placeholder="e.g. 4+ years"></label>
+          </div>
+
+          <div class="form-section-title"><span>02</span><div><h3>Your story</h3><p>Short, human and specific beats generic.</p></div></div>
+          <label>Professional bio<textarea name="bio" rows="5" maxlength="1200" placeholder="What do you do, who do you help, and what makes your approach different?" required></textarea></label>
+          <div class="field-grid two">
+            <label>Skills <small>comma separated</small><input name="skills" placeholder="Premiere Pro, After Effects, Motion Design"></label>
+            <label>Services <small>comma separated</small><input name="services" placeholder="Reels editing, Brand films, Color grading"></label>
+            <label>Languages <small>comma separated</small><input name="languages" placeholder="Arabic, English, French"></label>
+            <label>Profile photo<input type="file" name="avatar" accept="image/*"></label>
+          </div>
+
+          <div class="form-section-title"><span>03</span><div><h3>Contact & links</h3><p>Give people a clear next step.</p></div></div>
+          <div class="field-grid two">
+            <label>Phone / WhatsApp<input name="phone" placeholder="+961 ..."></label>
+            <label>Personal website<input name="website" placeholder="https://"></label>
+            <label>Instagram<input name="instagram" placeholder="https://instagram.com/..."></label>
+            <label>LinkedIn<input name="linkedin" placeholder="https://linkedin.com/in/..."></label>
+            <label>Behance<input name="behance" placeholder="https://behance.net/..."></label>
+            <label>Dribbble<input name="dribbble" placeholder="https://dribbble.com/..."></label>
+            <label>GitHub<input name="github" placeholder="https://github.com/..."></label>
+            <label>YouTube<input name="youtube" placeholder="https://youtube.com/..."></label>
+          </div>
+
+          <div class="field-grid two">
+            <label>Accent color<input type="color" name="accent" value="#111111"></label>
+            <label class="switch-line">Available for freelance work<input type="checkbox" name="availableForWork" checked></label>
+          </div>
+          <div class="form-actions">
+            <p id="profileMessage" class="form-message"></p>
+            <button class="btn dark" type="submit">Save profile & publish →</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="workSection" class="dash-section hidden">
+        <div class="dash-heading">
+          <div><div class="eyebrow">PORTFOLIO WORK</div><h1>Show the work, not just the title.</h1><p>Upload images or videos and give each project enough context to matter.</p></div>
+        </div>
+        <form id="projectForm" class="panel form-panel" enctype="multipart/form-data">
+          <div class="field-grid two">
+            <label>Project title<input name="title" required placeholder="Campaign redesign for Acme"></label>
+            <label>Category<input name="category" placeholder="Branding / Web / Editing / UI"></label>
+            <label>Client<input name="client" placeholder="Client or self-initiated"></label>
+            <label>Year<input name="year" type="number" min="1990" max="2100" placeholder="2026"></label>
+          </div>
+          <label>Project story<textarea name="description" rows="4" placeholder="What was the brief, your role, and the result?"></textarea></label>
+          <div class="field-grid two">
+            <label>Tools <small>comma separated</small><input name="tools" placeholder="Figma, Webflow, After Effects"></label>
+            <label>External project link<input name="projectUrl" placeholder="https://"></label>
+          </div>
+          <label class="upload-zone">Images or videos
+            <input type="file" name="media" accept="image/*,video/*" multiple>
+            <span>Drop up to 8 files · max 60MB each</span>
+          </label>
+          <label class="switch-line">Feature this project<input type="checkbox" name="featured"></label>
+          <div class="form-actions">
+            <p id="projectMessage" class="form-message"></p>
+            <button class="btn dark" type="submit">Add project →</button>
+          </div>
+        </form>
+
+        <div class="section-subhead"><h2>Your projects</h2><span id="projectCount"></span></div>
+        <div id="projectsGrid" class="projects-admin"></div>
+      </section>
+
+      <section id="shareSection" class="dash-section hidden">
+        <div class="dash-heading"><div><div class="eyebrow">SHARE & PUBLISH</div><h1>One link. Everywhere.</h1><p>Put it in your bio, CV, email signature or proposals.</p></div></div>
+        <div class="share-card">
+          <div><small>YOUR PUBLIC PORTFOLIO</small><h2 id="publicUrl">Complete your profile first</h2></div>
+          <div class="share-actions"><button id="copyBtn" class="btn light">Copy link</button><a id="openBtn" class="btn dark" target="_blank">Open portfolio</a></div>
+        </div>
+        <div class="panel share-notes"><h3>Before you send it</h3><p>Lead with your strongest project, keep your bio specific, and make sure every external link works on mobile.</p></div>
+      </section>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

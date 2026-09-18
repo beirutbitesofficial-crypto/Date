@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Freelance portfolio" />
+  <title>Portfolio</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="portfolio-page">
+  <div id="portfolioLoading" class="portfolio-loading">Loading portfolio…</div>
+  <main id="portfolio" class="hidden">
+    <header class="portfolio-nav shell-wide">
+      <a id="pNameNav" href="#" class="portfolio-wordmark">Portfolio</a>
+      <nav><a href="#work">Work</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
+    </header>
+
+    <section class="portfolio-hero shell-wide">
+      <div class="portfolio-kicker" id="pKicker"></div>
+      <h1 id="pName"></h1>
+      <p id="pPosition"></p>
+      <div class="portfolio-hero-foot">
+        <div id="pLocation"></div>
+        <div id="pAvailability"></div>
+      </div>
+    </section>
+
+    <section id="work" class="portfolio-work shell-wide">
+      <div class="section-label">SELECTED WORK</div>
+      <div id="pProjects" class="portfolio-projects"></div>
+    </section>
+
+    <section id="about" class="portfolio-about shell-wide">
+      <div class="section-label">ABOUT</div>
+      <div class="about-grid">
+        <div class="about-left"><div id="pAvatar" class="portfolio-avatar"></div></div>
+        <div class="about-main"><h2 id="pBio"></h2>
+          <div class="about-meta"><div><small>EXPERIENCE</small><span id="pExperience"></span></div><div><small>LANGUAGES</small><span id="pLanguages"></span></div></div>
+        </div>
+      </div>
+      <div class="skill-grid">
+        <div><small>SKILLS</small><div id="pSkills" class="tags"></div></div>
+        <div><small>SERVICES</small><div id="pServices" class="tags"></div></div>
+      </div>
+    </section>
+
+    <section id="contact" class="portfolio-contact shell-wide">
+      <div class="section-label">LET'S WORK TOGETHER</div>
+      <h2>Have a project in mind?</h2>
+      <div id="pContactLinks" class="contact-links"></div>
+    </section>
+
+    <footer class="portfolio-footer shell-wide"><span id="pFooterName"></span><span>Built with FolioOne</span></footer>
+  </main>
+  <script src="/portfolio.js"></script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Build a professional one-page portfolio for your freelance work." />
+  <title>FolioOne — Your work, one link.</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="marketing">
+  <header class="nav shell">
+    <a class="brand" href="/"><span>F</span> FolioOne</a>
+    <div class="nav-actions">
+      <a href="#auth" class="btn ghost">Sign in</a>
+      <a href="#auth" class="btn dark">Create portfolio</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero shell">
+      <div class="hero-copy">
+        <div class="eyebrow">PORTFOLIO BUILDER FOR FREELANCERS</div>
+        <h1>Your work.<br><em>One link.</em></h1>
+        <p>Turn your best projects into a polished portfolio page in minutes. Built for designers, editors, developers, creators and independent professionals.</p>
+        <div class="hero-actions">
+          <a class="btn dark large" href="#auth">Build your portfolio</a>
+          <span class="micro">No templates to fight. Just your work.</span>
+        </div>
+        <div class="trust-row">
+          <span>Web Design</span><span>Graphic Design</span><span>Video Editing</span><span>UI/UX</span><span>Content</span>
+        </div>
+      </div>
+
+      <div class="mock">
+        <div class="mock-top"><i></i><i></i><i></i><span>folio.one/u/your-name</span></div>
+        <div class="mock-body">
+          <div class="mock-profile">
+            <div class="avatar-placeholder">YN</div>
+            <div><b>Your Name</b><small>Creative Designer · Beirut</small></div>
+          </div>
+          <div class="mock-title">Selected work that<br>speaks for itself.</div>
+          <div class="mock-grid">
+            <div class="tile t1"></div><div class="tile t2"></div><div class="tile t3"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="how shell">
+      <div><span>01</span><h3>Tell us who you are</h3><p>Complete a guided professional profile: role, bio, skills, experience, services and contact details.</p></div>
+      <div><span>02</span><h3>Add your best work</h3><p>Upload images or videos, add project links, clients, tools and context around what you created.</p></div>
+      <div><span>03</span><h3>Share one clean link</h3><p>Get a public one-page portfolio ready to send to clients, recruiters, agencies or your social bio.</p></div>
+    </section>
+
+    <section class="auth-section shell" id="auth">
+      <div class="auth-copy">
+        <div class="eyebrow">START NOW</div>
+        <h2>Make your work easier to hire.</h2>
+        <p>Your portfolio should feel as professional as the work inside it.</p>
+      </div>
+      <div class="auth-card">
+        <div class="tabs">
+          <button class="tab active" data-tab="register">Create account</button>
+          <button class="tab" data-tab="login">Sign in</button>
+        </div>
+        <form id="registerForm" class="auth-form">
+          <label>Full name<input name="fullName" placeholder="e.g. Taha Elferekh" required></label>
+          <label>Email<input name="email" type="email" placeholder="you@email.com" required></label>
+          <label>Password<input name="password" type="password" minlength="8" placeholder="8+ characters" required></label>
+          <button class="btn dark full" type="submit">Continue to your profile →</button>
+          <p class="form-error" id="registerError"></p>
+        </form>
+        <form id="loginForm" class="auth-form hidden">
+          <label>Email<input name="email" type="email" required></label>
+          <label>Password<input name="password" type="password" required></label>
+          <button class="btn dark full" type="submit">Sign in →</button>
+          <p class="form-error" id="loginError"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shell">© 2026 FolioOne <span>Built for independent talent.</span></footer>
+  <script src="/auth.js"></script>
+</body>
+</html>
