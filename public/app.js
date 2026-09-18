@@ -8,7 +8,8 @@ const sections = {
   overview: document.getElementById("overviewSection"),
   profile: document.getElementById("profileSection"),
   work: document.getElementById("workSection"),
-  share: document.getElementById("shareSection")
+  share: document.getElementById("shareSection"),
+  settings: document.getElementById("settingsSection")
 };
 
 function showSection(name) {
@@ -65,10 +66,16 @@ function populate() {
   document.getElementById("projectsStat").textContent = state.projects.filter(x => x.published !== false).length;
   document.getElementById("projectsStat").nextElementSibling.textContent = "published work";
   document.getElementById("onboardingBanner").classList.toggle("hidden", u.onboardingComplete);
+  const verificationBanner = document.getElementById("verificationBanner");
+  verificationBanner.classList.toggle("hidden", u.emailVerified !== false);
+  document.getElementById("verificationBannerText").textContent = u.emailVerified === false
+    ? `Verification is required before ${u.email || "your account"} can publish publicly.`
+    : "Email verified.";
 
   const profileReady = u.onboardingComplete;
-  const isPublic = profileReady && p.portfolioPublic !== false;
-  document.getElementById("linkStatus").textContent = !profileReady ? "Not ready" : (isPublic ? "Live" : "Private");
+  const verified = u.emailVerified !== false;
+  const isPublic = profileReady && verified && p.portfolioPublic !== false;
+  document.getElementById("linkStatus").textContent = !profileReady ? "Not ready" : (!verified ? "Verify email" : (isPublic ? "Live" : "Private"));
   document.getElementById("linkHint").textContent = profileReady ? "/u/" + u.slug : "finish profile";
 
   document.getElementById("checkProfile").textContent = (profileReady ? "✓" : "○") + " Professional profile completed";
@@ -100,8 +107,13 @@ function populate() {
   document.getElementById("publicUrl").textContent = profileReady ? url : "Complete your profile first";
   document.getElementById("previewLink").href = profileReady ? "/u/" + u.slug : "#";
   document.getElementById("openBtn").href = profileReady ? "/u/" + u.slug : "#";
-  document.getElementById("previewLink").style.opacity = profileReady ? "1" : ".5";
-  document.getElementById("openBtn").style.opacity = profileReady ? "1" : ".5";
+  document.getElementById("previewLink").style.opacity = profileReady && verified ? "1" : ".5";
+  document.getElementById("openBtn").style.opacity = profileReady && verified ? "1" : ".5";
+
+  document.getElementById("verificationStatusText").textContent = verified
+    ? "Verified ✓ Your portfolio can be published publicly."
+    : "Not verified. Check your inbox or request a fresh verification email.";
+  document.getElementById("settingsResendVerificationBtn").classList.toggle("hidden", verified);
 
   renderProjects();
 }
@@ -344,6 +356,86 @@ document.getElementById("copyBtn").addEventListener("click", async () => {
   setTimeout(() => btn.textContent = "Copy link", 1600);
 });
 
+
+async function resendVerification(button) {
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Sending…";
+  }
+  try {
+    const response = await fetch("/api/auth/resend-verification", { method: "POST" });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not send verification email.");
+    const text = data.alreadyVerified ? "Already verified ✓" : "Verification email sent ✓";
+    document.getElementById("verificationBannerText").textContent = text;
+    document.getElementById("verificationStatusText").textContent = text;
+  } catch (error) {
+    document.getElementById("verificationBannerText").textContent = error.message;
+    document.getElementById("verificationStatusText").textContent = error.message;
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Resend verification";
+    }
+  }
+}
+
+document.getElementById("resendVerificationBtn").addEventListener("click", e => resendVerification(e.currentTarget));
+document.getElementById("settingsResendVerificationBtn").addEventListener("click", e => resendVerification(e.currentTarget));
+
+document.getElementById("changePasswordForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const msg = document.getElementById("changePasswordMessage");
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  msg.textContent = "Updating…";
+  try {
+    const payload = Object.fromEntries(new FormData(form).entries());
+    const response = await fetch("/api/account/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not update password.");
+    form.reset();
+    msg.textContent = "Password updated ✓ Older sessions were signed out.";
+  } catch (error) {
+    msg.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById("deleteAccountForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const form = e.currentTarget;
+  const msg = document.getElementById("deleteAccountMessage");
+  if (!form.confirmDelete.checked) {
+    msg.textContent = "Confirm that you understand the account will be permanently deleted.";
+    return;
+  }
+  if (!confirm("Permanently delete your FolioOne account and portfolio?")) return;
+
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  msg.textContent = "Deleting account…";
+  try {
+    const response = await fetch("/api/account/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: form.password.value })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not delete account.");
+    location.href = "/?account=deleted";
+  } catch (error) {
+    msg.textContent = error.message;
+    button.disabled = false;
+  }
+});
+
 document.getElementById("logoutBtn").addEventListener("click", async () => {
   await fetch("/api/auth/logout", { method: "POST" });
   location.href = "/";
@@ -513,6 +605,10 @@ async function load() {
 
   document.getElementById("loading").classList.add("hidden");
   populate();
+  const params = new URLSearchParams(location.search);
+  if (params.get("verified") === "1") {
+    document.getElementById("verificationStatusText").textContent = "Email verified ✓";
+  }
   showSection(state.user.onboardingComplete ? "overview" : "profile");
   initGoogleDrive();
 }
