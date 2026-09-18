@@ -38,6 +38,17 @@ FolioOne is a professional portfolio builder for freelancers. A freelancer compl
 - Publish/hide a project without deleting it
 - Delete a project and its uploaded cloud media
 
+## Account security
+
+- Email verification before a new account can publish publicly
+- Resend verification email
+- Forgot-password email flow
+- One-hour password reset links
+- Password change from account settings
+- Session versioning: password changes/resets invalidate older sessions
+- Permanent account deletion including uploaded portfolio media
+- Generic forgot-password response to avoid email-account enumeration
+
 ## Public portfolio
 
 - Responsive single-page portfolio
@@ -100,7 +111,9 @@ Key production variables:
 - `SUPABASE_SECRET_KEY`
 - `SUPABASE_STORAGE_BUCKET`
 - Google Picker values above
-- `REQUIRE_PRODUCTION_SERVICES=true` after database/storage are configured
+- SMTP values for verification/password-reset email
+- Google Drive Picker values
+- `REQUIRE_PRODUCTION_SERVICES=true` after database, storage, SMTP and Drive are configured
 
 ## Run locally
 
