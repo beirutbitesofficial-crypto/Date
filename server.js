@@ -12,6 +12,7 @@ const helmet = require("helmet");
 const { rateLimit } = require("express-rate-limit");
 const store = require("./lib/store");
 const mediaStore = require("./lib/media");
+const mailer = require("./lib/mailer");
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -33,6 +34,11 @@ function validateProductionEnv() {
   if (!process.env.SUPABASE_URL) missing.push("SUPABASE_URL");
   if (!process.env.SUPABASE_SECRET_KEY) missing.push("SUPABASE_SECRET_KEY");
   if (!process.env.SUPABASE_STORAGE_BUCKET) missing.push("SUPABASE_STORAGE_BUCKET");
+  if (!process.env.SMTP_HOST) missing.push("SMTP_HOST");
+  if (!process.env.SMTP_PORT) missing.push("SMTP_PORT");
+  if (!process.env.SMTP_USER) missing.push("SMTP_USER");
+  if (!process.env.SMTP_PASS) missing.push("SMTP_PASS");
+  if (!process.env.SMTP_FROM) missing.push("SMTP_FROM");
   if (!APP_URL || !/^https:\/\//i.test(APP_URL)) missing.push("APP_URL (https://...)");
   if (missing.length) {
     const message = "Production configuration incomplete: " + missing.join(", ");
@@ -129,12 +135,26 @@ async function uniqueSlug(base, excludeId = null) {
   return candidate;
 }
 function safeUser(user) {
-  const { passwordHash, ...rest } = user;
+  const {
+    passwordHash,
+    emailVerificationTokenHash,
+    emailVerificationExpires,
+    passwordResetTokenHash,
+    passwordResetExpires,
+    ...rest
+  } = user;
   return rest;
 }
-function signToken(userId) {
+function hashOneTimeToken(token) {
+  return crypto.createHash("sha256").update(String(token || "")).digest("hex");
+}
+function makeOneTimeToken() {
+  return crypto.randomBytes(32).toString("base64url");
+}
+function signToken(user) {
   const payload = Buffer.from(JSON.stringify({
-    userId,
+    userId: user.id,
+    sv: user.sessionVersion || 1,
     exp: Date.now() + 1000 * 60 * 60 * 24 * 30
   })).toString("base64url");
   const sig = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("base64url");
@@ -150,13 +170,13 @@ function verifyToken(token) {
     if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
     const data = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
     if (!data.exp || data.exp < Date.now()) return null;
-    return data.userId;
+    return data;
   } catch {
     return null;
   }
 }
-function setSession(res, userId) {
-  res.cookie("folio_session", signToken(userId), {
+function setSession(res, user) {
+  res.cookie("folio_session", signToken(user), {
     httpOnly: true,
     sameSite: "lax",
     secure: IS_PROD,
@@ -166,10 +186,12 @@ function setSession(res, userId) {
 }
 async function auth(req, res, next) {
   try {
-    const userId = verifyToken(req.cookies.folio_session);
-    if (!userId) return res.status(401).json({ error: "Please sign in." });
-    const user = await store.findUserById(userId);
-    if (!user) return res.status(401).json({ error: "Session expired." });
+    const session = verifyToken(req.cookies.folio_session);
+    if (!session?.userId) return res.status(401).json({ error: "Please sign in." });
+    const user = await store.findUserById(session.userId);
+    if (!user || Number(user.sessionVersion || 1) !== Number(session.sv || 1)) {
+      return res.status(401).json({ error: "Session expired." });
+    }
     req.user = user;
     next();
   } catch (error) {
@@ -312,6 +334,13 @@ app.post("/api/auth/register", authLimiter, async (req, res, next) => {
       createdAt: now,
       updatedAt: now,
       onboardingComplete: false,
+      emailVerified: false,
+      emailVerificationTokenHash: null,
+      emailVerificationExpires: null,
+      passwordResetTokenHash: null,
+      passwordResetExpires: null,
+      sessionVersion: 1,
+      lastLoginAt: null,
       profile: {
         fullName,
         position: "",
@@ -338,9 +367,22 @@ app.post("/api/auth/register", authLimiter, async (req, res, next) => {
         }
       }
     };
+    const verificationToken = makeOneTimeToken();
+    user.emailVerificationTokenHash = hashOneTimeToken(verificationToken);
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
     const created = await store.createUser(user);
-    setSession(res, id);
-    res.status(201).json({ user: safeUser(created) });
+    setSession(res, created);
+
+    let emailSent = false;
+    try {
+      await mailer.sendVerification(created, verificationToken);
+      emailSent = true;
+    } catch (mailError) {
+      console.error("[verification-email]", mailError.message);
+    }
+
+    res.status(201).json({ user: safeUser(created), emailSent });
   } catch (error) {
     next(error);
   }
@@ -354,11 +396,107 @@ app.post("/api/auth/login", authLimiter, async (req, res, next) => {
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       return res.status(401).json({ error: "Invalid email or password." });
     }
-    setSession(res, user.id);
-    res.json({ user: safeUser(user) });
+    user.lastLoginAt = new Date().toISOString();
+    user.updatedAt = user.lastLoginAt;
+    const savedUser = await store.saveUser(user);
+    setSession(res, savedUser);
+    res.json({ user: safeUser(savedUser) });
   } catch (error) {
     next(error);
   }
+});
+
+
+app.post("/api/auth/resend-verification", authLimiter, auth, async (req, res, next) => {
+  try {
+    const user = await store.findUserById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found." });
+    if (user.emailVerified) return res.json({ ok: true, alreadyVerified: true });
+
+    const token = makeOneTimeToken();
+    user.emailVerificationTokenHash = hashOneTimeToken(token);
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    user.updatedAt = new Date().toISOString();
+    const saved = await store.saveUser(user);
+    await mailer.sendVerification(saved, token);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/forgot-password", authLimiter, async (req, res, next) => {
+  try {
+    const email = clean(req.body.email, 150).toLowerCase();
+    const user = await store.findUserByEmail(email);
+    if (user) {
+      const token = makeOneTimeToken();
+      user.passwordResetTokenHash = hashOneTimeToken(token);
+      user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      user.updatedAt = new Date().toISOString();
+      const saved = await store.saveUser(user);
+      try {
+        await mailer.sendPasswordReset(saved, token);
+      } catch (mailError) {
+        console.error("[password-reset-email]", mailError.message);
+      }
+    }
+    res.json({ ok: true, message: "If that email exists, a reset link has been sent." });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/auth/reset-password", authLimiter, async (req, res, next) => {
+  try {
+    const token = clean(req.body.token, 500);
+    const password = String(req.body.password || "");
+    if (!token) return res.status(400).json({ error: "Reset token is required." });
+    if (password.length < 10) return res.status(400).json({ error: "Password must be at least 10 characters." });
+
+    const user = await store.findUserByResetHash(hashOneTimeToken(token));
+    if (!user || !user.passwordResetExpires || new Date(user.passwordResetExpires).getTime() < Date.now()) {
+      return res.status(400).json({ error: "This reset link is invalid or expired." });
+    }
+
+    user.passwordHash = await bcrypt.hash(password, 12);
+    user.passwordResetTokenHash = null;
+    user.passwordResetExpires = null;
+    user.sessionVersion = Number(user.sessionVersion || 1) + 1;
+    user.updatedAt = new Date().toISOString();
+    const saved = await store.saveUser(user);
+    setSession(res, saved);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/verify-email", authLimiter, async (req, res) => {
+  try {
+    const token = clean(req.query.token, 500);
+    if (!token) return res.redirect("/?verification=invalid");
+
+    const user = await store.findUserByVerificationHash(hashOneTimeToken(token));
+    if (!user || !user.emailVerificationExpires || new Date(user.emailVerificationExpires).getTime() < Date.now()) {
+      return res.redirect("/?verification=invalid");
+    }
+
+    user.emailVerified = true;
+    user.emailVerificationTokenHash = null;
+    user.emailVerificationExpires = null;
+    user.updatedAt = new Date().toISOString();
+    const saved = await store.saveUser(user);
+    setSession(res, saved);
+    res.redirect("/app?verified=1");
+  } catch (error) {
+    console.error("[verify-email]", error);
+    res.redirect("/?verification=invalid");
+  }
+});
+
+app.get("/reset-password", (_req, res) => {
+  res.sendFile(path.join(ROOT, "public", "reset-password.html"));
 });
 
 app.post("/api/auth/logout", (_req, res) => {
@@ -370,6 +508,58 @@ app.get("/api/me", auth, async (req, res, next) => {
   try {
     const projects = await store.getProjects(req.user.id);
     res.json({ user: safeUser(req.user), projects });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+app.post("/api/account/change-password", authLimiter, auth, async (req, res, next) => {
+  try {
+    const currentPassword = String(req.body.currentPassword || "");
+    const newPassword = String(req.body.newPassword || "");
+    if (newPassword.length < 10) return res.status(400).json({ error: "New password must be at least 10 characters." });
+
+    const user = await store.findUserById(req.user.id);
+    if (!user || !(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      return res.status(401).json({ error: "Current password is incorrect." });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 12);
+    user.sessionVersion = Number(user.sessionVersion || 1) + 1;
+    user.updatedAt = new Date().toISOString();
+    const saved = await store.saveUser(user);
+    setSession(res, saved);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/api/account/delete", authLimiter, auth, async (req, res, next) => {
+  try {
+    const password = String(req.body.password || "");
+    const user = await store.findUserById(req.user.id);
+    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+      return res.status(401).json({ error: "Password is incorrect." });
+    }
+
+    const projects = await store.getProjects(user.id);
+    for (const project of projects) {
+      for (const item of project.media || []) {
+        await mediaStore.remove(item).catch(error => console.error("[delete-media]", error.message));
+      }
+    }
+    if (user.profile?.avatarUrl) {
+      await mediaStore.remove({
+        url: user.profile.avatarUrl,
+        storagePath: user.profile.avatarStoragePath || null
+      }).catch(error => console.error("[delete-avatar]", error.message));
+    }
+
+    await store.deleteUser(user.id);
+    res.clearCookie("folio_session", { path: "/" });
+    res.json({ ok: true });
   } catch (error) {
     next(error);
   }
@@ -607,7 +797,7 @@ app.delete("/api/projects/:id", auth, async (req, res, next) => {
 app.get("/api/public/:slug", async (req, res, next) => {
   try {
     const user = await store.findUserBySlug(req.params.slug);
-    if (!user || !user.onboardingComplete || user.profile?.portfolioPublic === false) {
+    if (!user || !user.onboardingComplete || user.emailVerified === false || user.profile?.portfolioPublic === false) {
       return res.status(404).json({ error: "Portfolio not found." });
     }
     const projects = (await store.getProjects(user.id)).filter(p => p.published !== false);
@@ -622,7 +812,7 @@ app.get("/api/public/:slug", async (req, res, next) => {
 app.get("/u/:slug", async (req, res, next) => {
   try {
     const user = await store.findUserBySlug(req.params.slug);
-    if (!user || !user.onboardingComplete || user.profile?.portfolioPublic === false) {
+    if (!user || !user.onboardingComplete || user.emailVerified === false || user.profile?.portfolioPublic === false) {
       return res.status(404).sendFile(path.join(ROOT, "public", "404.html"));
     }
     const template = fs.readFileSync(path.join(ROOT, "public", "portfolio.html"), "utf8");
