@@ -26,6 +26,7 @@
         <button class="side-link" data-section="profile">Profile & survey</button>
         <button class="side-link" data-section="work">Portfolio work</button>
         <button class="side-link" data-section="share">Share & publish</button>
+        <button class="side-link" data-section="settings">Account settings</button>
       </nav>
       <div class="side-tip"><b>Tip</b><p>3–6 excellent projects usually look stronger than 20 average ones.</p></div>
     </aside>
@@ -37,6 +38,11 @@
         <div class="dash-heading">
           <div><div class="eyebrow">YOUR WORKSPACE</div><h1 id="helloTitle">Good to see you.</h1></div>
           <button class="btn dark" data-go="work">+ Add project</button>
+        </div>
+
+        <div id="verificationBanner" class="verification-banner hidden">
+          <div><span>EMAIL VERIFICATION</span><h2>Verify your email to publish publicly.</h2><p id="verificationBannerText">We sent a verification link to your account email.</p></div>
+          <button id="resendVerificationBtn" class="btn light" type="button">Resend email</button>
         </div>
 
         <div id="onboardingBanner" class="onboarding-banner hidden">
@@ -185,6 +191,35 @@
           <div class="share-actions"><button id="copyBtn" class="btn light">Copy link</button><a id="openBtn" class="btn dark" target="_blank">Open portfolio</a></div>
         </div>
         <div class="panel share-notes"><h3>Before you send it</h3><p>Lead with your strongest project, keep your bio specific, and make sure every external link works on mobile.</p></div>
+      </section>
+
+      <section id="settingsSection" class="dash-section hidden">
+        <div class="dash-heading">
+          <div><div class="eyebrow">ACCOUNT SETTINGS</div><h1>Security & account.</h1><p>Manage verification, password and account deletion.</p></div>
+        </div>
+
+        <div class="panel account-panel">
+          <div class="account-row">
+            <div><h3>Email verification</h3><p id="verificationStatusText">Checking status…</p></div>
+            <button id="settingsResendVerificationBtn" class="btn ghost" type="button">Resend verification</button>
+          </div>
+        </div>
+
+        <form id="changePasswordForm" class="panel form-panel account-form">
+          <div class="form-section-title"><span>01</span><div><h3>Change password</h3><p>Changing your password invalidates older sessions.</p></div></div>
+          <div class="field-grid two">
+            <label>Current password<input name="currentPassword" type="password" autocomplete="current-password" required></label>
+            <label>New password<input name="newPassword" type="password" minlength="10" autocomplete="new-password" required></label>
+          </div>
+          <div class="form-actions"><p id="changePasswordMessage" class="form-message"></p><button class="btn dark" type="submit">Update password</button></div>
+        </form>
+
+        <form id="deleteAccountForm" class="panel form-panel danger-panel">
+          <div class="form-section-title"><span>02</span><div><h3>Delete account</h3><p>This permanently removes your profile, projects and uploaded portfolio media.</p></div></div>
+          <label>Confirm your password<input name="password" type="password" autocomplete="current-password" required></label>
+          <label class="switch-line danger-confirm">I understand this cannot be undone<input name="confirmDelete" type="checkbox"></label>
+          <div class="form-actions"><p id="deleteAccountMessage" class="form-message"></p><button class="btn danger" type="submit">Delete my account</button></div>
+        </form>
       </section>
     </section>
   </main>
