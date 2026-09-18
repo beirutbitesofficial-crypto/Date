@@ -5,6 +5,7 @@ const loginForm = document.getElementById("loginForm");
 tabs.forEach(tab => tab.addEventListener("click", () => {
   tabs.forEach(t => t.classList.toggle("active", t === tab));
   const register = tab.dataset.tab === "register";
+  forgotForm?.classList.add("hidden");
   registerForm.classList.toggle("hidden", !register);
   loginForm.classList.toggle("hidden", register);
 }));
@@ -78,4 +79,10 @@ if (query.get("verification") === "invalid") {
   const error = document.getElementById("loginError");
   error.textContent = "That verification link is invalid or expired. Sign in to request a new one.";
   showLoginForm();
+}
+
+if (query.get("account") === "deleted") {
+  const msg = document.getElementById("registerError");
+  msg.style.color = "#52775d";
+  msg.textContent = "Your account and portfolio were deleted.";
 }
