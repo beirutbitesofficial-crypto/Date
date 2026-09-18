@@ -2,6 +2,8 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
+const { Readable } = require("stream");
+const { pipeline } = require("stream/promises");
 const bcrypt = require("bcryptjs");
 const cookieParser = require("cookie-parser");
 const multer = require("multer");
@@ -431,6 +433,65 @@ app.put("/api/profile", auth, upload.single("avatar"), async (req, res, next) =>
   }
 });
 
+app.post("/api/drive/import", auth, async (req, res, next) => {
+  let tmpPath = "";
+  try {
+    if (!mediaStore.cloudEnabled) {
+      return res.status(503).json({ error: "Cloud storage must be configured before importing Drive files." });
+    }
+
+    const fileId = clean(req.body.fileId, 200);
+    const accessToken = clean(req.body.accessToken, 4096);
+    if (!/^[A-Za-z0-9_-]{10,200}$/.test(fileId) || !accessToken) {
+      return res.status(400).json({ error: "Invalid Google Drive selection." });
+    }
+
+    const headers = { Authorization: "Bearer " + accessToken };
+    const metaResponse = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=id,name,mimeType,size&supportsAllDrives=true`,
+      { headers }
+    );
+    if (!metaResponse.ok) return res.status(400).json({ error: "Could not read that Google Drive file." });
+
+    const meta = await metaResponse.json();
+    if (!/^(image|video)\//.test(meta.mimeType || "")) {
+      return res.status(415).json({ error: "Drive import currently supports image and video files." });
+    }
+    if (Number(meta.size || 0) > MAX_UPLOAD_BYTES) {
+      return res.status(413).json({ error: `Drive file is larger than ${MAX_UPLOAD_MB}MB.` });
+    }
+
+    const download = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`,
+      { headers }
+    );
+    if (!download.ok || !download.body) {
+      return res.status(400).json({ error: "Could not download that Google Drive file." });
+    }
+
+    const ext = path.extname(meta.name || "").toLowerCase().replace(/[^.a-z0-9]/g, "").slice(0, 10);
+    const filename = "drive-" + Date.now() + "-" + crypto.randomBytes(7).toString("hex") + ext;
+    tmpPath = path.join(UPLOAD_DIR, filename);
+    await pipeline(Readable.fromWeb(download.body), fs.createWriteStream(tmpPath));
+
+    const saved = await mediaStore.persist({
+      path: tmpPath,
+      filename,
+      originalname: clean(meta.name, 240) || filename,
+      mimetype: meta.mimeType
+    }, req.user.id, "drive");
+
+    tmpPath = "";
+    res.status(201).json({ media: saved });
+  } catch (error) {
+    next(error);
+  } finally {
+    if (tmpPath && fs.existsSync(tmpPath)) {
+      try { fs.unlinkSync(tmpPath); } catch {}
+    }
+  }
+});
+
 app.get("/api/projects", auth, async (req, res, next) => {
   try {
     res.json({ projects: await store.getProjects(req.user.id) });
@@ -448,6 +509,13 @@ app.post("/api/projects", auth, upload.array("media", 8), async (req, res, next)
     for (const file of req.files || []) {
       savedMedia.push(await mediaStore.persist(file, req.user.id, "projects"));
     }
+    let driveMedia = [];
+    try {
+      const raw = JSON.parse(req.body.driveMedia || "[]");
+      if (Array.isArray(raw)) {
+        driveMedia = raw.map(item => mediaStore.ownedMedia(item.storagePath, req.user.id, item.name, item.type)).filter(Boolean).slice(0, 8);
+      }
+    } catch {}
 
     const now = new Date().toISOString();
     const project = {
@@ -463,7 +531,7 @@ app.post("/api/projects", auth, upload.array("media", 8), async (req, res, next)
       externalSources: parseSourceLinks(req.body.sourceLinks),
       featured: String(req.body.featured) === "true",
       published: String(req.body.published) !== "false",
-      media: savedMedia,
+      media: [...driveMedia, ...savedMedia].slice(0, 12),
       createdAt: now,
       updatedAt: now
     };
@@ -485,6 +553,13 @@ app.put("/api/projects/:id", auth, upload.array("media", 8), async (req, res, ne
     for (const file of req.files || []) {
       newMedia.push(await mediaStore.persist(file, req.user.id, "projects"));
     }
+    let driveMedia = [];
+    try {
+      const raw = JSON.parse(req.body.driveMedia || "[]");
+      if (Array.isArray(raw)) {
+        driveMedia = raw.map(item => mediaStore.ownedMedia(item.storagePath, req.user.id, item.name, item.type)).filter(Boolean).slice(0, 8);
+      }
+    } catch {}
 
     project.title = title;
     project.category = clean(req.body.category, 80);
@@ -496,7 +571,7 @@ app.put("/api/projects/:id", auth, upload.array("media", 8), async (req, res, ne
     project.externalSources = parseSourceLinks(req.body.sourceLinks);
     project.featured = String(req.body.featured) === "true";
     project.published = String(req.body.published) !== "false";
-    project.media = [...(project.media || []), ...newMedia].slice(0, 12);
+    project.media = [...(project.media || []), ...driveMedia, ...newMedia].slice(0, 12);
     project.updatedAt = new Date().toISOString();
 
     res.json({ project: await store.saveProject(project) });
